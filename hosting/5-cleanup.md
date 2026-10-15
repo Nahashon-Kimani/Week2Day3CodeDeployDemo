@@ -1,18 +1,18 @@
-# Part 4 — Clean Up the Lab Environment
+# Part 5 — Clean Up the Lab Environment
 
 **Goal:** Delete everything created in this lab so nothing keeps charging. Work through the steps **in order**, because some resources depend on others.
 
 | # | Resource | Created in |
 |---|---|---|
-| 1 | EC2 instance `elearning-web` | codedeploy.md |
-| 2 | Security group `elearning-web-sg` (+ key pair) | codedeploy.md |
-| 3 | CodeDeploy app `elearning-app` (+ deployment group) | codedeploy.md |
-| 4 | CodeBuild project `elearning-build` | codebuild.md |
-| 5 | CloudWatch log group `/aws/codebuild/elearning-build` | codebuild.md |
-| 6 | S3 bucket `elearning-artifacts-...` | codebuild.md |
-| 7 | IAM roles and policies | codebuild.md / codedeploy.md |
-| 8 | GitHub connection (CodeConnections) | codebuild.md |
-| 9 | GitHub repo and token (optional) | github.md |
+| 1 | EC2 instance `elearning-web` | 3-codedeploy.md |
+| 2 | Security group `elearning-web-sg` (+ key pair) | 3-codedeploy.md |
+| 3 | CodeDeploy app `elearning-app` (+ deployment group) | 3-codedeploy.md |
+| 4 | CodeBuild project `elearning-build` | 2-codebuild.md |
+| 5 | CloudWatch log group `/aws/codebuild/elearning-build` | 2-codebuild.md |
+| 6 | S3 bucket `elearning-artifacts-...` | 2-codebuild.md |
+| 7 | IAM roles and policies | 2-codebuild.md / 3-codedeploy.md |
+| 8 | GitHub connection (CodeConnections) | 2-codebuild.md |
+| 9 | GitHub repo and token (optional) | 1-github.md |
 
 > 💰 The **EC2 instance** is the main cost. Delete it first, even if you skip everything else.
 

@@ -282,4 +282,4 @@ Detailed per-deployment script output on the instance:
 sudo tail -n 100 /opt/codedeploy-agent/deployment-root/deployment-logs/codedeploy-agent-deployments.log
 ```
 
-✅ **Done.** When the class is over: [4-cleanup.md](4-cleanup.md)
+✅ **Done.** Next: [4-update-site.md](4-update-site.md)
