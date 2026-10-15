@@ -35,6 +35,10 @@ In our `appspec.yml`:
 
 ---
 
+> **Shared AWS account:** IAM role names must be unique across the whole account, and everyone in the class is creating roles in it. Add `-<yourname>` to the end of every role name in this guide, using the same name you used for your S3 bucket. For example, `EC2-CodeDeploy-Role-jdoe`.
+>
+> 📝 Your suffix: `-______________`
+
 ## Step 1 — IAM role for the EC2 instance
 
 The instance needs permission to **download the revision from S3**. SSM access is optional but lets you open a shell from the browser.
@@ -44,7 +48,7 @@ The instance needs permission to **download the revision from S3**. SSM access i
 3. Attach these policies:
    - `AmazonS3ReadOnlyAccess`
    - `AmazonSSMManagedInstanceCore` (optional, for Session Manager)
-4. **Role name:** `EC2-CodeDeploy-Role` → **Create role**
+4. **Role name:** `EC2-CodeDeploy-Role-<yourname>` → **Create role**
 
 > In production you would scope S3 access to just the artifact bucket. Read-only on all buckets keeps the classroom setup simple.
 
@@ -57,7 +61,7 @@ CodeDeploy itself needs permission to read EC2 tags and manage deployments.
 1. **IAM** → **Roles** → **Create role**
 2. **Trusted entity:** AWS service → choose **CodeDeploy** → use case **CodeDeploy** → Next
 3. The `AWSCodeDeployRole` policy is attached automatically → Next
-4. **Role name:** `CodeDeployServiceRole` → **Create role**
+4. **Role name:** `CodeDeployServiceRole-<yourname>` → **Create role**
 
 ---
 
@@ -73,66 +77,91 @@ CodeDeploy itself needs permission to read EC2 tags and manage deployments.
 | **Key pair** | Create or choose one (or skip it and use EC2 Instance Connect or Session Manager) |
 | **Network** | Default VPC, public subnet, **Auto-assign public IP: Enable** |
 | **Security group** | Create new: `elearning-web-sg`<br>• **SSH (22)**, source *My IP*<br>• **HTTP (80)**, source *Anywhere 0.0.0.0/0* |
-| **Advanced details → IAM instance profile** | `EC2-CodeDeploy-Role` |
+| **Advanced details → IAM instance profile** | `EC2-CodeDeploy-Role-<yourname>` |
 
-### Install the CodeDeploy agent with User data
-
-In **Advanced details → User data**, paste:
-
-```bash
-#!/bin/bash
-dnf update -y
-dnf install -y ruby wget
-
-# Work out the region from instance metadata (IMDSv2)
-TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" \
-  -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
-REGION=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
-  http://169.254.169.254/latest/meta-data/placement/region)
-
-# Download and install the CodeDeploy agent for this region
-cd /home/ec2-user
-wget "https://aws-codedeploy-${REGION}.s3.${REGION}.amazonaws.com/latest/install"
-chmod +x ./install
-./install auto
-
-systemctl enable codedeploy-agent
-systemctl start codedeploy-agent
-```
+Leave **User data** empty. You'll install the agent by hand in Step 4.
 
 Click **Launch instance**. Wait until **Instance state = Running** and **Status checks = 2/2 passed**, which takes about 2–3 minutes.
 
 ---
 
-## Step 4 — Verify (or manually install) the CodeDeploy agent
+## Step 4 — Install the CodeDeploy agent
 
-Connect to the instance: select it → **Connect** → **EC2 Instance Connect** → **Connect**.
+Connect to the instance: select it → **Connect** → **EC2 Instance Connect** → **Connect**. A terminal opens in your browser, logged in as `ec2-user`.
+
+Run the commands below **one at a time**, and check each one finishes without errors before running the next.
+
+**4.1 Update the system packages.** This brings the OS up to date before you install anything. It can take a minute.
 
 ```bash
-sudo systemctl status codedeploy-agent
+sudo dnf update -y
 ```
 
-You want to see `active (running)`.
-
-### Manual install (if you skipped User data or it failed)
+**4.2 Install Ruby and wget.** The CodeDeploy agent is written in Ruby, so it needs Ruby to run. `wget` downloads files from the internet; you'll use it to fetch the agent installer.
 
 ```bash
 sudo dnf install -y ruby wget
+```
+
+**4.3 Get a metadata token.** Every EC2 instance can query information about itself at the address `169.254.169.254`. Amazon Linux 2023 requires a session token first (this is called IMDSv2). The command saves the token in the `TOKEN` variable.
+
+```bash
+TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+```
+
+**4.4 Find the instance's region.** This uses the token to ask which region the instance runs in, saves it in `REGION`, and prints it. The output should be your lab region, for example `us-east-1`.
+
+```bash
+REGION=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/region)
+echo $REGION
+```
+
+> If `echo $REGION` prints nothing, set it yourself: `REGION=us-east-1` (use your lab region).
+
+**4.5 Go to your home folder.** The installer will be downloaded here.
+
+```bash
 cd /home/ec2-user
-REGION=us-east-1           # <-- change to your region
-wget https://aws-codedeploy-$REGION.s3.$REGION.amazonaws.com/latest/install
+```
+
+**4.6 Download the agent installer.** AWS hosts a copy of the installer in every region. `$REGION` fills in your region, so you get the copy closest to you.
+
+```bash
+wget "https://aws-codedeploy-${REGION}.s3.${REGION}.amazonaws.com/latest/install"
+```
+
+**4.7 Make the installer executable.** Downloaded files can't be run until they're given execute permission.
+
+```bash
 chmod +x ./install
+```
+
+**4.8 Run the installer.** `auto` picks the right agent version for this operating system and installs it. This needs root, so it uses `sudo`.
+
+```bash
 sudo ./install auto
+```
+
+**4.9 Start the agent, and have it start on every boot.** `enable` makes the agent start automatically if the instance reboots; `start` starts it now.
+
+```bash
+sudo systemctl enable codedeploy-agent
 sudo systemctl start codedeploy-agent
+```
+
+**4.10 Check the agent is running.** Look for `active (running)` in green. Press `q` to exit the status view.
+
+```bash
 sudo systemctl status codedeploy-agent
 ```
+
+> ⚠️ The `TOKEN` and `REGION` variables only last for the current terminal session. If you disconnect partway through, run 4.3 and 4.4 again before continuing.
 
 ### Useful agent commands
 
 ```bash
 sudo systemctl restart codedeploy-agent                         # restart (e.g. after attaching an IAM role)
-sudo tail -f /var/log/aws/codedeploy-agent/codedeploy-agent.log  # agent log
-cat /var/log/cloud-init-output.log                              # User data output, if the install failed
+sudo tail -f /var/log/aws/codedeploy-agent/codedeploy-agent.log  # agent log (Ctrl+C to exit)
 ```
 
 > ⚠️ If you attached the IAM role **after** the agent started, run `sudo systemctl restart codedeploy-agent` so it picks up the credentials.
@@ -155,7 +184,7 @@ Inside `elearning-app` → **Deployment groups** → **Create deployment group**
 | Setting | Value |
 |---|---|
 | **Deployment group name** | `elearning-dg` |
-| **Service role** | `CodeDeployServiceRole` |
+| **Service role** | `CodeDeployServiceRole-<yourname>` |
 | **Deployment type** | **In-place** |
 | **Environment configuration** | ✅ **Amazon EC2 instances**<br>Tag group: **Key** `Name`, **Value** `elearning-web`<br>The console should say *1 unique matched instance*. |
 | **Agent configuration with AWS Systems Manager** | **Never**. We already installed the agent ourselves. |
@@ -233,10 +262,13 @@ cat /var/www/html/build-info.txt
 
 ## Troubleshooting
 
+> **Reading the error:** *"The overall deployment failed because too many individual instances failed deployment..."* is a generic summary, not the real cause. To find the cause, open the deployment → in **Deployment lifecycle events**, click **View events** for your instance → find the first event marked **Failed** → read its **Error code** and message. Then look it up in the table below.
+
 | Symptom | Where to look / fix |
 |---|---|
+| **DownloadBundle** fails with *The specified key does not exist* | No zip file exists at the revision location. Usually CodeBuild's **Artifacts packaging** is **None** instead of **Zip**, so S3 holds a *folder* named `elearning-artifact.zip/`. Fix it in [2-codebuild.md](2-codebuild.md) Step 4, rebuild, then redeploy. Also check that the bucket and key you typed are spelled correctly. |
 | Deployment group shows **0 matched instances** | The tag key or value doesn't match. Tags are case-sensitive (`Name` = `elearning-web`). |
-| Deployment stuck **In progress / Pending**, then fails with *agent not responding* | Agent isn't running, or the instance has no IAM role. Run `sudo systemctl status codedeploy-agent`, attach `EC2-CodeDeploy-Role`, then restart the agent. |
+| Deployment stuck **In progress / Pending**, then fails with *agent not responding* | Agent isn't running, or the instance has no IAM role. Run `sudo systemctl status codedeploy-agent`, attach `EC2-CodeDeploy-Role-<yourname>`, then restart the agent. |
 | **DownloadBundle** fails with `Access Denied` | Instance role is missing S3 read access, or the bucket or key name is wrong. |
 | **BeforeInstall**: `/bin/bash^M: bad interpreter` | CRLF line endings. Check `.gitattributes`, convert the files to LF and push again. |
 | **BeforeInstall**: `Permission denied` | Script isn't executable. Run `git update-index --chmod=+x scripts/*.sh`, then commit and push. |
@@ -250,4 +282,4 @@ Detailed per-deployment script output on the instance:
 sudo tail -n 100 /opt/codedeploy-agent/deployment-root/deployment-logs/codedeploy-agent-deployments.log
 ```
 
-✅ **Done.** When the class is over: [cleanup.md](cleanup.md)
+✅ **Done.** When the class is over: [4-cleanup.md](4-cleanup.md)

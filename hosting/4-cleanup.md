@@ -126,8 +126,8 @@ aws s3 rb s3://$BUCKET
 
 | Role | Notes |
 |---|---|
-| `EC2-CodeDeploy-Role` | Also removes its instance profile when deleted from the console |
-| `CodeDeployServiceRole` | |
+| `EC2-CodeDeploy-Role-<yourname>` | Also removes its instance profile when deleted from the console |
+| `CodeDeployServiceRole-<yourname>` | |
 | `codebuild-elearning-build-service-role` | Auto-created by CodeBuild |
 
 Then IAM → **Policies** → filter **Customer managed** → delete `CodeBuildBasePolicy-elearning-build-<region>` and any other `CodeBuild...elearning-build...` policies that were auto-created.
@@ -135,14 +135,14 @@ Then IAM → **Policies** → filter **Customer managed** → delete `CodeBuildB
 **CLI (EC2 role example):**
 
 ```bash
-aws iam remove-role-from-instance-profile --instance-profile-name EC2-CodeDeploy-Role --role-name EC2-CodeDeploy-Role
-aws iam delete-instance-profile --instance-profile-name EC2-CodeDeploy-Role
-aws iam detach-role-policy --role-name EC2-CodeDeploy-Role --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
-aws iam detach-role-policy --role-name EC2-CodeDeploy-Role --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-aws iam delete-role --role-name EC2-CodeDeploy-Role
+aws iam remove-role-from-instance-profile --instance-profile-name EC2-CodeDeploy-Role-<yourname> --role-name EC2-CodeDeploy-Role-<yourname>
+aws iam delete-instance-profile --instance-profile-name EC2-CodeDeploy-Role-<yourname>
+aws iam detach-role-policy --role-name EC2-CodeDeploy-Role-<yourname> --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+aws iam detach-role-policy --role-name EC2-CodeDeploy-Role-<yourname> --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+aws iam delete-role --role-name EC2-CodeDeploy-Role-<yourname>
 
-aws iam detach-role-policy --role-name CodeDeployServiceRole --policy-arn arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
-aws iam delete-role --role-name CodeDeployServiceRole
+aws iam detach-role-policy --role-name CodeDeployServiceRole-<yourname> --policy-arn arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
+aws iam delete-role --role-name CodeDeployServiceRole-<yourname>
 ```
 
 ---

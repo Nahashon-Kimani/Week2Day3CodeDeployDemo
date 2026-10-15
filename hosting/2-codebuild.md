@@ -91,7 +91,9 @@ Open **CodeBuild** → **Build projects** → **Create build project**.
 - **Name:** `elearning-artifact.zip`
 - **Path:** leave blank
 - **Namespace type:** None
-- **Artifacts packaging:** **Zip**
+- Expand **Additional configuration** (in the Artifacts section) → **Artifacts packaging:** select **Zip**
+
+> ⚠️ **Don't skip the Zip setting.** It's hidden in a collapsed panel and defaults to **None**. With **None**, CodeBuild uploads the files loose into a *folder* called `elearning-artifact.zip/` instead of creating one zip file. The build still reports **Succeeded**, but CodeDeploy fails later at **DownloadBundle** with *The specified key does not exist*.
 
 The artifact will be stored at:
 
@@ -129,11 +131,14 @@ aws codebuild list-builds-for-project --project-name elearning-build
 
 ## Step 4 — Verify the artifact in S3
 
-1. Open **S3** → your bucket. You should see `elearning-artifact.zip`.
+1. Open **S3** → your bucket. You should see `elearning-artifact.zip` as a **single file**, with a size and **Type: zip**.
+   - If it shows as a **folder** that you can click into, the packaging was set to **None**. Go to **CodeBuild** → `elearning-build` → **Edit** → **Artifacts** → **Additional configuration** → **Artifacts packaging: Zip** → **Update artifacts**. Then delete the `elearning-artifact.zip/` folder in S3 and run the build again.
 2. Optional: download it and open it. It should contain `index.html`, `css/`, `img/`, `appspec.yml`, `scripts/` and `build-info.txt`, but **not** `hosting/` or `.git/`.
 
 ```bash
 aws s3 ls s3://<your-bucket>/
+# Good: one line like      2026-10-15 17:56:32   1234567 elearning-artifact.zip
+# Bad:  a line like        PRE elearning-artifact.zip/   (that's a folder)
 ```
 
 📝 Note the artifact location: `s3://______________________/elearning-artifact.zip`
@@ -189,3 +194,4 @@ Back in CodeBuild → **Build history**, a new build starts automatically, trigg
 | `CLIENT_ERROR: authentication required` at DOWNLOAD_SOURCE | GitHub connection expired or lacks access to the repo. Reconnect under **Manage account credentials**. |
 | `AccessDenied` at UPLOAD_ARTIFACTS | Service role can't write to the bucket. Add `s3:PutObject` on `arn:aws:s3:::<bucket>/*` to the CodeBuild service role. |
 | Bucket not listed in the Artifacts dropdown | Bucket is in a different region. Recreate it in the CodeBuild region. |
+| S3 shows `elearning-artifact.zip/` as a **folder** | **Artifacts packaging** is **None**. Change it to **Zip** (see Step 4), delete the folder and rebuild. |
