@@ -53,20 +53,23 @@ Open **CodeBuild** → **Build projects** → **Create build project**.
 ### 2.1 Project configuration
 - **Project name:** `elearning-build`
 - **Description:** `Builds the eLearning static site`
+- **Project type:** select **Default project**
 
 ### 2.2 Source
 - **Source provider:** GitHub
-- **Credential:** if it shows *not connected*, click **Manage account credentials**:
-  - Choose **GitHub App** (recommended) → **Create a new GitHub connection** → name it `github-elearning` → **Connect to GitHub** → **Install a new app** → authorise it for your `elearning-cicd` repository → **Connect**.
-  - Or choose **OAuth** → **Connect to GitHub** → authorise in the popup.
-  - Save the credential.
+- **Credentials:**
+  - Check **Use override credentials for this project only**.
+  - If your GitHub connection is listed in the **Connection** dropdown, select it.
+  - If it isn't listed, click the **create a new GitHub connection** link:
+    - Name it `github-elearning` → **Connect to GitHub** → **Install a new app** → authorise it for your `elearning-cicd` repository → **Connect**.
+    - Return to the CodeBuild tab, refresh the **Connection** dropdown and select `github-elearning`.
 - **Repository:** *Repository in my GitHub account* → choose `elearning-cicd`
 - **Source version:** `main` (optional; the default branch is used if left blank)
 
 ### 2.3 Primary source webhook events (optional, but good for the CI demo)
-- Tick **Rebuild every time a code change is pushed to this repository**
+- Check **Rebuild every time a code change is pushed to this repository**
 - **Build type:** Single build
-- **Event type:** `PUSH`
+- **Event type:** `ALL_PULL_REQUESTS`
 
 ### 2.4 Environment
 - **Provisioning model:** On-demand
@@ -74,7 +77,7 @@ Open **CodeBuild** → **Build projects** → **Create build project**.
 - **Compute:** EC2
 - **Operating system:** Amazon Linux
 - **Runtime(s):** Standard
-- **Image:** `aws/codebuild/amazonlinux-x86_64-standard:5.0` (or the latest listed)
+- **Image:** `aws/codebuild/amazonlinux-x86_64-standard:6.0` (or the latest listed)
 - **Service role:** **New service role**. Accept the suggested name, for example `codebuild-elearning-build-service-role`.
 - Under **Additional configuration**, keep compute at **3 GB memory, 2 vCPUs**. That's the smallest size and plenty for this build.
 
@@ -173,7 +176,7 @@ git push
 
 Back in CodeBuild → **Build history**, a new build starts automatically, triggered by the push.
 
-✅ **Done.** Next: [codedeploy.md](codedeploy.md)
+✅ **Done.** Next: [3-codedeploy.md](3-codedeploy.md)
 
 ---
 
