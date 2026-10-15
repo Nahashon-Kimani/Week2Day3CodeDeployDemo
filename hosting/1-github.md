@@ -5,7 +5,7 @@
 **Lab flow:** **GitHub** → CodeBuild → S3 (artifact) → CodeDeploy → EC2 (Apache)
 
 ```
-eLearning/                      <- repository root
+elearning-cicd/                 <- repository root
 ├── index.html, about.html, ... <- the website
 ├── css/  img/  js/  lib/
 ├── buildspec.yml               <- instructions for CodeBuild   (you create this)
@@ -28,18 +28,52 @@ eLearning/                      <- repository root
 
 ---
 
-## Step 1 — Make a clean copy of the project
+## Step 1 — Clone the starter project
 
-The `eLearning` folder sits inside a larger course repository, which already has its own `.git`. Running `git init` there would create a repo nested inside another one. Copy the folder somewhere outside it first:
+### 1.1 Clone the repository
+
+Clone the starter code into a new folder called `Week2Day3CodeDeployDemo` on your Desktop:
 
 ```bash
 # Git Bash (Windows) or a terminal on Mac/Linux
-cp -r "/path/to/Moringa School/Module 1/Week 2/Day 3/Demo/eLearning" ~/Desktop/elearning-cicd
-cd ~/Desktop/elearning-cicd
+cd ~/Desktop
+git clone https://github.com/Nahashon-Kimani/Week2Day3CodeDeployDemo.git elearning-cicd
+cd elearning-cicd
 ls
 ```
 
 You should see `index.html`, `css/`, `img/`, `js/`, `lib/` and `hosting/`.
+
+### 1.2 Delete the `.git` folder
+
+The clone still holds the instructor's Git history, and its `origin` points to the instructor's repository, which you can't push to. You'll be publishing this code to **your own** repository, so remove the existing `.git` folder and start fresh in Step 4.
+
+> **Note:** `.git` is a hidden folder, so plain `ls` and File Explorer won't show it by default. Use `ls -a` to see it.
+
+**Git Bash (Windows) or a terminal on Mac/Linux:**
+
+```bash
+# Make sure you are inside elearning-cicd before running this
+pwd
+rm -rf .git
+```
+
+**PowerShell (Windows):**
+
+```powershell
+Remove-Item -Recurse -Force .git
+```
+
+Confirm it is gone:
+
+```bash
+ls -a          # .git should no longer be listed
+git status     # should print: fatal: not a git repository
+```
+
+> ⚠️ Run the delete command **only inside `Week2Day3CodeDeployDemo`**. Running `rm -rf .git` in the wrong folder wipes that project's Git history.
+
+Do not continue to Step 2 until `git status` reports *not a git repository*.
 
 ---
 
@@ -217,7 +251,7 @@ git push -u origin main
 2. Confirm you can see `index.html`, `buildspec.yml` and `appspec.yml` in the root, plus the `scripts/` folder.
 3. Open `scripts/start_server.sh` on GitHub. It should display normally, with no `^M` characters.
 
-✅ **Done.** Next: [codebuild.md](codebuild.md)
+✅ **Done.** Next: [2-codebuild.md](2-codebuild.md)
 
 ---
 
@@ -238,3 +272,5 @@ git push
 | `rejected ... fetch first` | You created the repo with a README. Run `git pull origin main --rebase`, then push again. |
 | `Authentication failed` | Use a Personal Access Token instead of your password, or clear old credentials in Windows **Credential Manager**. |
 | `src refspec main does not match any` | You haven't committed yet. Run `git commit` first. |
+| `git init` says *Reinitialized existing Git repository* | The cloned `.git` folder wasn't deleted. Go back to Step 1.2. |
+| Push goes to `Nahashon-Kimani/Week2Day3CodeDeployDemo` or is denied with 403 | Same cause: the old `origin` is still there. Delete `.git` (Step 1.2) and redo Steps 4–5. |
