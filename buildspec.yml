@@ -1,0 +1,31 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Validating project structure..."
+      - test -f index.html
+      - test -f appspec.yml
+      - test -d scripts
+  build:
+    commands:
+      - echo "Build started on $(date)"
+      # Safety net: strip Windows line endings and make the scripts executable
+      - sed -i 's/\r$//' scripts/*.sh
+      - chmod +x scripts/*.sh
+      # Stamp the build so we can see which commit is live on the server
+      - echo "Build ID  $CODEBUILD_BUILD_ID"                 >  build-info.txt
+      - echo "Commit    $CODEBUILD_RESOLVED_SOURCE_VERSION"  >> build-info.txt
+      - echo "Built at  $(date)"                             >> build-info.txt
+  post_build:
+    commands:
+      - echo "Build completed on $(date)"
+
+artifacts:
+  files:
+    - '**/*'
+  exclude-paths:
+    - '.git/**/*'
+    - 'hosting/**/*'
+    - 'buildspec.yml'
+    - '.gitattributes'
