@@ -8,14 +8,15 @@
 elearning-cicd/                 <- repository root
 ├── index.html, about.html, ... <- the website
 ├── css/  img/  js/  lib/
-├── buildspec.yml               <- instructions for CodeBuild   (you create this)
-├── appspec.yml                 <- instructions for CodeDeploy  (you create this)
-├── scripts/                    <- lifecycle hook scripts       (you create this)
+├── buildspec.yml               <- instructions for CodeBuild   (included)
+├── appspec.yml                 <- instructions for CodeDeploy  (included)
+├── scripts/                    <- lifecycle hook scripts       (included)
 │   ├── install_dependencies.sh
 │   ├── start_server.sh
 │   └── validate_service.sh
 ├── .gitattributes              <- forces Linux line endings    (you create this)
-└── hosting/                    <- these lab guides (not deployed)
+├── hosting/                    <- these lab guides (not deployed)
+└── codepipeline/               <- guides for the CodePipeline lab (not deployed)
 ```
 
 ---
@@ -32,7 +33,7 @@ elearning-cicd/                 <- repository root
 
 ### 1.1 Clone the repository
 
-Clone the starter code into a new folder called `Week2Day3CodeDeployDemo` on your Desktop:
+Clone the starter code into a new folder called `elearning-cicd` on your Desktop:
 
 ```bash
 # Git Bash (Windows) or a terminal on Mac/Linux
@@ -71,7 +72,7 @@ ls -a          # .git should no longer be listed
 git status     # should print: fatal: not a git repository
 ```
 
-> ⚠️ Run the delete command **only inside `Week2Day3CodeDeployDemo`**. Running `rm -rf .git` in the wrong folder wipes that project's Git history.
+> ⚠️ Run the delete command **only inside `elearning-cicd`**. Running `rm -rf .git` in the wrong folder wipes that project's Git history.
 
 Do not continue to Step 2 until `git status` reports *not a git repository*.
 
@@ -88,113 +89,35 @@ Do not continue to Step 2 until `git status` reports *not a git repository*.
 
 ---
 
-## Step 3 — Add the deployment files
+## Step 3 — Review the deployment files
 
-Create these files in the project root (`elearning-cicd/`). The CodeBuild and CodeDeploy guides explain each one in detail.
+The project you cloned already contains the files CodeBuild and CodeDeploy need. You only have to create one file, `.gitattributes`.
 
-### 3.1 `.gitattributes`
+### 3.1 Look at the included files
 
-On Windows, editors save files with CRLF (`\r\n`) line endings. A bash script with CRLF endings fails on Linux with `/bin/bash^M: bad interpreter`. This file tells Git to always store these files with LF endings:
+Open each of these in VS Code and read through it. The CodeBuild and CodeDeploy guides explain them in detail.
+
+| File | Used by | What it does |
+|---|---|---|
+| `buildspec.yml` | CodeBuild | Checks that `index.html`, `appspec.yml` and `scripts/` exist; strips Windows line endings from the scripts and makes them executable; writes `build-info.txt` with the build ID and commit; lists which files go into the artifact (everything except `.git/`, the `hosting/` and `codepipeline/` guides, and the build config) |
+| `appspec.yml` | CodeDeploy | Copies the files to `/var/www/html` and runs the three scripts below at the right lifecycle events |
+| `scripts/install_dependencies.sh` | CodeDeploy (`BeforeInstall`) | Installs Apache (`httpd`) if it isn't already installed |
+| `scripts/start_server.sh` | CodeDeploy (`ApplicationStart`) | Enables and restarts Apache |
+| `scripts/validate_service.sh` | CodeDeploy (`ValidateService`) | Requests the home page with `curl`; the deployment fails if it isn't served |
+
+> **VS Code tip:** with a `.sh` file open, check the bottom-right status bar. If it shows `CRLF`, click it, switch to `LF` and save. Scripts with Windows line endings fail on Linux with `/bin/bash^M: bad interpreter`.
+
+### 3.2 Create `.gitattributes`
+
+On Windows, Git and editors can convert files to CRLF (`\r\n`) line endings. This file tells Git to always store scripts and YAML files with Linux (LF) line endings.
+
+Create a file named `.gitattributes` (note the leading dot) in the project root, containing:
 
 ```gitattributes
 *.sh   text eol=lf
 *.yml  text eol=lf
 *.yaml text eol=lf
 ```
-
-### 3.2 `buildspec.yml` (used by CodeBuild)
-
-```yaml
-version: 0.2
-
-phases:
-  pre_build:
-    commands:
-      - echo "Validating project structure..."
-      - test -f index.html
-      - test -f appspec.yml
-      - test -d scripts
-  build:
-    commands:
-      - echo "Build started on $(date)"
-      # Safety net: strip Windows line endings and make the scripts executable
-      - sed -i 's/\r$//' scripts/*.sh
-      - chmod +x scripts/*.sh
-      # Stamp the build so we can see which commit is live on the server
-      - echo "Build ID  $CODEBUILD_BUILD_ID"                 >  build-info.txt
-      - echo "Commit    $CODEBUILD_RESOLVED_SOURCE_VERSION"  >> build-info.txt
-      - echo "Built at  $(date)"                             >> build-info.txt
-  post_build:
-    commands:
-      - echo "Build completed on $(date)"
-
-artifacts:
-  files:
-    - '**/*'
-  exclude-paths:
-    - '.git/**/*'
-    - 'hosting/**/*'
-    - 'buildspec.yml'
-    - '.gitattributes'
-```
-
-### 3.3 `appspec.yml` (used by CodeDeploy)
-
-```yaml
-version: 0.0
-os: linux
-
-files:
-  - source: /
-    destination: /var/www/html
-
-file_exists_behavior: OVERWRITE
-
-hooks:
-  BeforeInstall:
-    - location: scripts/install_dependencies.sh
-      timeout: 300
-      runas: root
-  ApplicationStart:
-    - location: scripts/start_server.sh
-      timeout: 300
-      runas: root
-  ValidateService:
-    - location: scripts/validate_service.sh
-      timeout: 120
-      runas: root
-```
-
-### 3.4 `scripts/install_dependencies.sh`
-
-```bash
-#!/bin/bash
-set -e
-# Install Apache if it is not already installed (Amazon Linux 2023 uses dnf)
-if ! rpm -q httpd > /dev/null 2>&1; then
-  dnf install -y httpd
-fi
-```
-
-### 3.5 `scripts/start_server.sh`
-
-```bash
-#!/bin/bash
-set -e
-systemctl enable httpd
-systemctl restart httpd
-```
-
-### 3.6 `scripts/validate_service.sh`
-
-```bash
-#!/bin/bash
-# Fail the deployment if the home page is not served
-sleep 5
-curl -sf http://localhost/index.html > /dev/null
-```
-
-> **VS Code tip:** before saving each `.sh` file, check the bottom-right status bar. If it shows `CRLF`, click it and switch to `LF`.
 
 ---
 

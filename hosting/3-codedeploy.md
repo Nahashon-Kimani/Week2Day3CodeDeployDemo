@@ -74,9 +74,11 @@ CodeDeploy itself needs permission to read EC2 tags and manage deployments.
 | **Name** | `elearning-web`. This creates the tag `Name = elearning-web`, which the deployment group uses to find the instance. |
 | **AMI** | Amazon Linux 2023 AMI (64-bit x86) |
 | **Instance type** | `t3.micro` |
-| **Key pair** | Create or choose one (or skip it and use EC2 Instance Connect or Session Manager) |
+| **Key pair** | **Proceed without a key pair**. You'll connect with EC2 Instance Connect in the browser. |
 | **Network** | Default VPC, public subnet, **Auto-assign public IP: Enable** |
-| **Security group** | Create new: `elearning-web-sg`<br>• **SSH (22)**, source *My IP*<br>• **HTTP (80)**, source *Anywhere 0.0.0.0/0* |
+| **Security group** | Create new: `elearning-web-sg`<br>• **SSH (22)**, source *Anywhere 0.0.0.0/0*<br>• **HTTP (80)**, source *Anywhere 0.0.0.0/0* |
+
+> **Why SSH from *Anywhere*?** When you click **Connect** → **EC2 Instance Connect** in the console, the connection comes from AWS's own servers, not from your computer. A rule that only allows *My IP* blocks it. Opening port 22 to everyone is fine for a short lab with no key pair, but in production you'd allow only the EC2 Instance Connect IP range for your region, or use Session Manager with port 22 closed.
 | **Advanced details → IAM instance profile** | `EC2-CodeDeploy-Role-<yourname>` |
 
 Leave **User data** empty. You'll install the agent by hand in Step 4.
@@ -275,6 +277,7 @@ cat /var/www/html/build-info.txt
 | **Install**: `file already exists at location` | Add `file_exists_behavior: OVERWRITE` to the appspec, or choose *Overwrite* when deploying. |
 | **ValidateService** fails | Apache isn't serving the page. Run `sudo systemctl status httpd` and `curl -I localhost`. |
 | Site doesn't load in the browser | Security group needs inbound **HTTP 80**, and the URL must be `http://`, not `https://`. |
+| EC2 Instance Connect fails with *Failed to connect to your instance* | Security group needs inbound **SSH 22** from *Anywhere* (see Step 3), and the instance needs a public IP. |
 
 Detailed per-deployment script output on the instance:
 

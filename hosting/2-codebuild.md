@@ -22,7 +22,7 @@
 
 - **pre_build:** checks that `index.html`, `appspec.yml` and `scripts/` exist, and fails fast if they don't.
 - **build:** removes Windows line endings, runs `chmod +x` on the scripts, and writes `build-info.txt` with the build ID and commit.
-- **artifacts:** packages everything except `.git`, `hosting/` (these guides) and the build config itself.
+- **artifacts:** packages everything except `.git`, the `hosting/` and `codepipeline/` guide folders and the build config itself.
 
 ---
 
@@ -133,7 +133,7 @@ aws codebuild list-builds-for-project --project-name elearning-build
 
 1. Open **S3** → your bucket. You should see `elearning-artifact.zip` as a **single file**, with a size and **Type: zip**.
    - If it shows as a **folder** that you can click into, the packaging was set to **None**. Go to **CodeBuild** → `elearning-build` → **Edit** → **Artifacts** → **Additional configuration** → **Artifacts packaging: Zip** → **Update artifacts**. Then delete the `elearning-artifact.zip/` folder in S3 and run the build again.
-2. Optional: download it and open it. It should contain `index.html`, `css/`, `img/`, `appspec.yml`, `scripts/` and `build-info.txt`, but **not** `hosting/` or `.git/`.
+2. Optional: download it and open it. It should contain `index.html`, `css/`, `img/`, `appspec.yml`, `scripts/` and `build-info.txt`, but **not** `hosting/`, `codepipeline/` or `.git/`.
 
 ```bash
 aws s3 ls s3://<your-bucket>/

@@ -27,5 +27,6 @@ artifacts:
   exclude-paths:
     - '.git/**/*'
     - 'hosting/**/*'
+    - 'codepipeline/**/*'
     - 'buildspec.yml'
     - '.gitattributes'
